@@ -1,0 +1,14 @@
+# NodeJS
+node_modules
+
+# Editor
+.vscode
+
+# System
+.DS_Store
+
+# Project
+dist/*.js
+public/js/*.js
+
+src/examples
