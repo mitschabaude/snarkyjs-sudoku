@@ -8,7 +8,7 @@ node_modules
 .DS_Store
 
 # Project
-dist/*.js
-public/js/*.js
+dist
+public/js
 
 src/examples
