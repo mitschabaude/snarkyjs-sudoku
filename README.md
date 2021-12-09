@@ -1,6 +1,6 @@
-# ZK Sudoku
+# SnarkyJS Sudoku
 
-Sudoku example with SnarkyJS.
+Zero-knowledge Sudoku with SnarkyJS.
 
 ```sh
 npm i
