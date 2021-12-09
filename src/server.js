@@ -15,7 +15,7 @@ let server = http.createServer(async (req, res) => {
   try {
     content = await fs.readFile(path.resolve('./public', file), 'utf8');
   } catch (err) {
-    res.writeHead(404, headers);
+    res.writeHead(404, defaultHeaders);
     res.write('<html><body>404</body><html>');
     res.end();
     return;
