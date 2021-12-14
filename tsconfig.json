@@ -5,6 +5,7 @@
     "outDir": "./dist",
     "rootDir": "./src",
     "useDefineForClassFields": false,
+    "declaration": true,
     "strict": false,
     "allowJs": true,
     "skipLibCheck": true,

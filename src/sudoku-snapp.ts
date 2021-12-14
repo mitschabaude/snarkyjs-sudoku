@@ -38,11 +38,14 @@ class SudokuSnapp extends SmartContract {
   @state(Field) sudokuHash: State<Field>;
   @state(Bool) isSolved: State<Bool>;
 
-  constructor(address: PublicKey, initialBalance: UInt64, sudoku: Sudoku) {
+  constructor(address: PublicKey, sudoku: Sudoku) {
     super(address);
-    this.balance.addInPlace(initialBalance);
-
     this.sudoku = sudoku;
+  }
+
+  deploy(initialBalance: UInt64) {
+    super.deploy();
+    this.balance.addInPlace(initialBalance);
     this.sudokuHash = State.init(this.sudoku.hash());
     this.isSolved = State.init(Bool(false));
   }
@@ -110,29 +113,43 @@ Mina.setActiveInstance(Local);
 const account1 = Local.testAccounts[0].privateKey;
 const account2 = Local.testAccounts[1].privateKey;
 
-let snapp: SudokuSnapp;
 let isDeploying = false;
-let snappAddress: PublicKey;
 
 async function deploy(sudoku: number[][]) {
   if (isDeploying) return;
   isDeploying = true;
   const snappPrivkey = PrivateKey.random();
-  snappAddress = snappPrivkey.toPublicKey();
+  let snappAddress = snappPrivkey.toPublicKey();
+  let snapp = new SudokuSnapp(snappAddress, new Sudoku(sudoku));
 
   let tx = Mina.transaction(account1, async () => {
     console.log('Deploying Sudoku...');
     const initialBalance = UInt64.fromNumber(1000000);
     const p = await Party.createSigned(account2);
     p.balance.subInPlace(initialBalance);
-    snapp = new SudokuSnapp(snappAddress, initialBalance, new Sudoku(sudoku));
+    snapp.deploy(initialBalance);
   });
   await tx.send().wait();
 
   isDeploying = false;
+
+  return {
+    sudoku,
+    submitSolution(solution: number[][]) {
+      return submitSolution(snappAddress, sudoku, solution);
+    },
+    getSnappState() {
+      return getSnappState(snappAddress);
+    },
+  };
 }
 
-async function submitSolution(solution: number[][]) {
+async function submitSolution(
+  snappAddress: PublicKey,
+  sudoku: number[][],
+  solution: number[][]
+) {
+  let snapp = new SudokuSnapp(snappAddress, new Sudoku(sudoku));
   let tx = Mina.transaction(account2, async () => {
     console.log('Submitting solution...');
     await snapp.submitSolution(new Sudoku(solution));
@@ -144,7 +161,7 @@ async function submitSolution(solution: number[][]) {
   }
 }
 
-async function getSnappState() {
+async function getSnappState(snappAddress: PublicKey) {
   let snappState = (await Mina.getAccount(snappAddress)).snapp.appState;
   let sudokuHash = fieldToHex(snappState[0]);
   let isSolved = snappState[1].equals(true).toBoolean();

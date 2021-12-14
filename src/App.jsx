@@ -16,7 +16,7 @@ let Sudoku; // this will hold the dynamically imported './sudoku-snapp.ts'
 render(<App />, document.querySelector('#root'));
 
 function App() {
-  let [sudoku, setSudoku] = useState([]);
+  let [snapp, setSnapp] = useState();
   let [ease, setEase] = useState(0.5);
 
   let [view, setView] = useState(1);
@@ -25,20 +25,15 @@ function App() {
   return (
     <Container>
       {view === 1 ? (
-        <GenerateSudoku {...{ setSudoku, ease, setEase, goForward }} />
+        <GenerateSudoku {...{ setSnapp, ease, setEase, goForward }} />
       ) : (
-        <SolveSudoku {...{ sudoku, goBack }} />
+        <SolveSudoku {...{ snapp, goBack }} />
       )}
     </Container>
   );
 }
 
-function GenerateSudoku({
-  setSudoku: setDeployedSudoku,
-  ease,
-  setEase,
-  goForward,
-}) {
+function GenerateSudoku({ setSnapp, ease, setEase, goForward }) {
   let [sudoku, setSudoku] = useState(() => generateSudoku(1 - ease));
   useEffect(() => {
     setSudoku(generateSudoku(1 - ease));
@@ -50,9 +45,9 @@ function GenerateSudoku({
     if (isLoading) return;
     setLoading(true);
     Sudoku = await import('../dist/sudoku-snapp.js');
-    await Sudoku.deploy(sudoku);
+    let snapp = await Sudoku.deploy(sudoku);
     setLoading(false);
-    setDeployedSudoku(sudoku);
+    setSnapp(snapp);
     goForward();
   }
 
@@ -84,16 +79,17 @@ function GenerateSudoku({
   );
 }
 
-function SolveSudoku({ sudoku, goBack }) {
-  let [solution, setSolution] = useState(sudoku ?? []);
-  let [snappState, pullSnappState] = useSnappState();
+function SolveSudoku({ snapp, goBack }) {
+  let sudoku = snapp?.sudoku ?? [];
+  let [solution, setSolution] = useState(sudoku);
+  let [snappState, pullSnappState] = useSnappState(snapp);
 
   let [isLoading, setLoading] = useState(false);
 
   async function submit() {
     if (isLoading) return;
     setLoading(true);
-    await Sudoku.submitSolution(solution);
+    await snapp.submitSolution(solution);
     await pullSnappState();
     setLoading(false);
   }
@@ -124,16 +120,16 @@ function SolveSudoku({ sudoku, goBack }) {
   );
 }
 
-function useSnappState() {
+function useSnappState(snapp) {
   let [state, setState] = useState();
   let pullSnappState = useCallback(async () => {
-    let state = await Sudoku?.getSnappState();
+    let state = await snapp?.getSnappState();
     setState(state);
     return state;
-  });
+  }, [snapp]);
   useEffect(() => {
-    Sudoku?.getSnappState().then(setState);
-  }, []);
+    snapp?.getSnappState().then(setState);
+  }, [snapp]);
   return [state, pullSnappState];
 }
 

@@ -23,13 +23,15 @@ function emptySudoku() {
 }
 
 /**
- * Solve a given sudoku. Returns undefined if there is no solution.
+ * Solve a given sudoku. Throws an error if there is no solution.
  *
  * @param {number[][]} sudoku - The input sudoku with some cell values equal to zero
- * @returns {number[][] | undefined} - The full sudoku, or undefined if no solution exists
+ * @returns {number[][]} - The full sudoku, or undefined if no solution exists
  */
 function solveSudoku(sudoku) {
-  return solveSudokuInternal(sudoku, true);
+  let solution = solveSudokuInternal(sudoku, true);
+  if (solution === undefined) throw Error('Cannot solve the sudoku!');
+  return solution;
 }
 
 function solveSudokuInternal(sudoku, deterministic, possible) {

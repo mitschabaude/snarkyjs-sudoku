@@ -3,19 +3,18 @@
   "version": "0.1.0",
   "description": "",
   "type": "module",
-  "main": "index.js",
   "scripts": {
     "start": "node src/server.js & esbuild --watch --splitting --bundle ./src/App.jsx --outdir=./public/js --format=esm --target=esnext --define:process.env.NODE_ENV='\"development\"'",
-    "build": "esbuild --minify --splitting --bundle ./src/App.jsx --outdir=./public/js --format=esm --target=esnext --define:process.env.NODE_ENV='\"production\"'"
+    "build": "tsc && esbuild --minify --splitting --bundle ./src/App.jsx --outdir=./public/js --format=esm --target=esnext --define:process.env.NODE_ENV='\"production\"'"
   },
   "keywords": [],
   "author": "O(1) labs",
   "license": "Apache-2.0",
   "dependencies": {
+    "snarkyjs": "file:../snarkyjs",
     "esbuild": "^0.14.2",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
-    "snarkyjs": "^0.1.11",
     "typescript": "^4.5.2"
   },
   "devDependencies": {
