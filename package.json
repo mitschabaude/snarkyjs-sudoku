@@ -4,6 +4,8 @@
   "description": "",
   "type": "module",
   "scripts": {
+    "ts-compile": "tsc",
+    "post install": "yarn ts-compile",
     "start": "node src/server.js & esbuild --watch --splitting --bundle ./src/App.jsx --outdir=./public/js --format=esm --target=esnext --define:process.env.NODE_ENV='\"development\"'",
     "build": "tsc && esbuild --minify --splitting --bundle ./src/App.jsx --outdir=./public/js --format=esm --target=esnext --define:process.env.NODE_ENV='\"production\"'"
   },
