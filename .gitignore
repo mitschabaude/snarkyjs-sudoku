@@ -12,3 +12,4 @@ dist
 public/js
 
 src/examples
+.vercel
