@@ -12,11 +12,10 @@ import {
   State,
   isReady,
   Poseidon,
-  UInt64,
   Party,
 } from 'snarkyjs';
 
-export { deploy, submitSolution, getSnappState };
+export { deploy };
 
 await isReady;
 
@@ -33,21 +32,16 @@ class Sudoku extends CircuitValue {
   }
 }
 
-class SudokuSnapp extends SmartContract {
+class SudokuZkapp extends SmartContract {
   @state(Field) sudokuHash = State<Field>();
   @state(Bool) isSolved = State<Bool>();
 
-  deploy(initialBalance: UInt64, sudoku: Sudoku) {
-    super.deploy();
-    this.balance.addInPlace(initialBalance);
+  @method init(sudoku: Sudoku) {
     this.sudokuHash.set(sudoku.hash());
     this.isSolved.set(Bool(false));
   }
 
-  @method async submitSolution(
-    sudokuInstance: Sudoku,
-    solutionInstance: Sudoku
-  ) {
+  @method submitSolution(sudokuInstance: Sudoku, solutionInstance: Sudoku) {
     let sudoku = sudokuInstance.value;
     let solution = solutionInstance.value;
 
@@ -96,7 +90,7 @@ class SudokuSnapp extends SmartContract {
     }
 
     // finally, we check that the sudoku is the one that was originally deployed
-    let sudokuHash = await this.sudokuHash.get(); // get the hash from the blockchain
+    let sudokuHash = this.sudokuHash.get(); // get the hash from the blockchain
     sudokuInstance.hash().assertEquals(sudokuHash);
 
     // all checks passed => the sudoku is solved!
@@ -107,65 +101,66 @@ class SudokuSnapp extends SmartContract {
 // setup
 const Local = Mina.LocalBlockchain();
 Mina.setActiveInstance(Local);
-const account1 = Local.testAccounts[0].privateKey;
-const account2 = Local.testAccounts[1].privateKey;
+let feePayer = Local.testAccounts[0].privateKey;
 
-let isDeploying = null as null | {
+type SudokuInterface = {
   sudoku: number[][];
   submitSolution(solution: number[][]): Promise<void>;
-  getSnappState(): Promise<{ sudokuHash: string; isSolved: boolean }>;
+  getState(): { sudokuHash: string; isSolved: boolean };
 };
+let isDeploying = null as null | SudokuInterface;
 
 async function deploy(sudoku: number[][]) {
   if (isDeploying) return isDeploying;
-  const snappPrivkey = PrivateKey.random();
-  let snappAddress = snappPrivkey.toPublicKey();
-  let snappInterface = {
+
+  let zkappKey = PrivateKey.random();
+  let zkappAddress = zkappKey.toPublicKey();
+  let { verificationKey } = await SudokuZkapp.compile(zkappAddress);
+
+  let zkappInterface = {
     sudoku,
     submitSolution(solution: number[][]) {
-      return submitSolution(snappAddress, sudoku, solution);
+      return submitSolution(zkappAddress, sudoku, solution);
     },
-    getSnappState() {
-      return getSnappState(snappAddress);
+    getState() {
+      return getState(zkappAddress);
     },
   };
-  isDeploying = snappInterface;
+  isDeploying = zkappInterface;
 
-  let snapp = new SudokuSnapp(snappAddress);
-  let tx = Mina.transaction(account1, async () => {
-    console.log('Deploying Sudoku...');
-    const initialBalance = UInt64.fromNumber(1000000);
-    const p = await Party.createSigned(account2);
-    p.balance.subInPlace(initialBalance);
-    snapp.deploy(initialBalance, new Sudoku(sudoku));
+  let zkapp = new SudokuZkapp(zkappAddress);
+  let tx = await Mina.transaction(feePayer, () => {
+    Party.fundNewAccount(feePayer);
+    zkapp.deploy({ zkappKey, verificationKey });
+    zkapp.init(new Sudoku(sudoku));
   });
   await tx.send().wait();
 
   isDeploying = null;
-  return snappInterface;
+  return zkappInterface;
 }
 
 async function submitSolution(
-  snappAddress: PublicKey,
+  zkappAddress: PublicKey,
   sudoku: number[][],
   solution: number[][]
 ) {
-  let snapp = new SudokuSnapp(snappAddress);
-  let tx = Mina.transaction(account2, async () => {
-    console.log('Submitting solution...');
-    await snapp.submitSolution(new Sudoku(sudoku), new Sudoku(solution));
-  });
+  let zkapp = new SudokuZkapp(zkappAddress);
   try {
+    let tx = await Mina.transaction(feePayer, () => {
+      zkapp.submitSolution(new Sudoku(sudoku), new Sudoku(solution));
+    });
+    await tx.prove();
     await tx.send().wait();
   } catch (err) {
     console.log('Solution rejected!');
   }
 }
 
-async function getSnappState(snappAddress: PublicKey) {
-  let snappState = (await Mina.getAccount(snappAddress)).snapp.appState;
-  let sudokuHash = fieldToHex(snappState[0]);
-  let isSolved = snappState[1].equals(true).toBoolean();
+function getState(zkappAddress: PublicKey) {
+  let zkapp = new SudokuZkapp(zkappAddress);
+  let sudokuHash = fieldToHex(zkapp.sudokuHash.get());
+  let isSolved = zkapp.isSolved.get().toBoolean();
   return { sudokuHash, isSolved };
 }
 

@@ -10,7 +10,7 @@ npx tsc
 npm run start
 ```
 
-If you just want to quickly test the core smart contract logic with node, after `npm i` you can do
+If you just want to test the core smart contract logic with node, after `npm i` you can do
 
 ```sh
 npx tsc && node dist/main.js
