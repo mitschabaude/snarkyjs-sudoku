@@ -14,6 +14,7 @@ import {
   Poseidon,
   Party,
 } from 'snarkyjs';
+import { tic, toc } from './tictoc';
 
 export { deploy };
 
@@ -115,7 +116,9 @@ async function deploy(sudoku: number[][]) {
 
   let zkappKey = PrivateKey.random();
   let zkappAddress = zkappKey.toPublicKey();
+  tic('compile');
   let { verificationKey } = await SudokuZkapp.compile(zkappAddress);
+  toc();
 
   let zkappInterface = {
     sudoku,
@@ -150,10 +153,13 @@ async function submitSolution(
     let tx = await Mina.transaction(feePayer, () => {
       zkapp.submitSolution(new Sudoku(sudoku), new Sudoku(solution));
     });
+    tic('prove');
     await tx.prove();
+    toc();
     await tx.send().wait();
   } catch (err) {
     console.log('Solution rejected!');
+    console.error(err);
   }
 }
 
