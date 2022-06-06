@@ -11,12 +11,12 @@ let thin = `${grey} solid 1px`;
 let sudokuWidth = 450;
 let rightColumnWidth = 275;
 
-let Sudoku; // this will hold the dynamically imported './sudoku-snapp.ts'
+let Sudoku; // this will hold the dynamically imported './sudoku-zkapp.ts'
 
 render(<App />, document.querySelector('#root'));
 
 function App() {
-  let [snapp, setSnapp] = useState();
+  let [zkapp, setZkapp] = useState();
   let [ease, setEase] = useState(0.5);
 
   let [view, setView] = useState(1);
@@ -25,15 +25,15 @@ function App() {
   return (
     <Container>
       {view === 1 ? (
-        <GenerateSudoku {...{ setSnapp, ease, setEase, goForward }} />
+        <GenerateSudoku {...{ setZkapp, ease, setEase, goForward }} />
       ) : (
-        <SolveSudoku {...{ snapp, goBack }} />
+        <SolveSudoku {...{ zkapp, goBack }} />
       )}
     </Container>
   );
 }
 
-function GenerateSudoku({ setSnapp, ease, setEase, goForward }) {
+function GenerateSudoku({ setZkapp, ease, setEase, goForward }) {
   let [sudoku, setSudoku] = useState(() => generateSudoku(1 - ease));
   useEffect(() => {
     setSudoku(generateSudoku(1 - ease));
@@ -44,10 +44,10 @@ function GenerateSudoku({ setSnapp, ease, setEase, goForward }) {
   async function deploy() {
     if (isLoading) return;
     setLoading(true);
-    Sudoku = await import('../dist/sudoku-snapp.js');
-    let snapp = await Sudoku.deploy(sudoku);
+    Sudoku = await import('../dist/sudoku.js');
+    let zkapp = await Sudoku.deploy(sudoku);
     setLoading(false);
-    setSnapp(snapp);
+    setZkapp(zkapp);
     goForward();
   }
 
@@ -79,18 +79,18 @@ function GenerateSudoku({ setSnapp, ease, setEase, goForward }) {
   );
 }
 
-function SolveSudoku({ snapp, goBack }) {
-  let sudoku = snapp?.sudoku ?? [];
+function SolveSudoku({ zkapp, goBack }) {
+  let sudoku = zkapp?.sudoku ?? [];
   let [solution, setSolution] = useState(sudoku);
-  let [snappState, pullSnappState] = useSnappState(snapp);
+  let [zkappState, pullZkappState] = useZkappState(zkapp);
 
   let [isLoading, setLoading] = useState(false);
 
   async function submit() {
     if (isLoading) return;
     setLoading(true);
-    await snapp.submitSolution(solution);
-    await pullSnappState();
+    await zkapp.submitSolution(solution);
+    pullZkappState();
     setLoading(false);
   }
 
@@ -106,10 +106,10 @@ function SolveSudoku({ snapp, goBack }) {
       />
 
       <div style={{ width: rightColumnWidth + 'px' }}>
-        <p>Snapp state:</p>
+        <p>Zkapp state:</p>
         <Space h=".5rem" />
 
-        <SnappState state={snappState} />
+        <ZkappState state={zkappState} />
         <Space h="2.5rem" />
 
         <Button onClick={submit} disabled={isLoading}>
@@ -120,17 +120,17 @@ function SolveSudoku({ snapp, goBack }) {
   );
 }
 
-function useSnappState(snapp) {
+function useZkappState(zkapp) {
   let [state, setState] = useState();
-  let pullSnappState = useCallback(async () => {
-    let state = await snapp?.getSnappState();
+  let pullZkappState = useCallback(() => {
+    let state = zkapp?.getState();
     setState(state);
     return state;
-  }, [snapp]);
+  }, [zkapp]);
   useEffect(() => {
-    snapp?.getSnappState().then(setState);
-  }, [snapp]);
-  return [state, pullSnappState];
+    setState(zkapp?.getState());
+  }, [zkapp]);
+  return [state, pullZkappState];
 }
 
 // pure UI components
@@ -220,7 +220,7 @@ function SudokuTable({ sudoku, editable, solution, setSolution }) {
   );
 }
 
-function SnappState({ state = {} }) {
+function ZkappState({ state = {} }) {
   let { sudokuHash = '', isSolved = false } = state;
   return (
     <div
