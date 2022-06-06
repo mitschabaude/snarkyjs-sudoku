@@ -1,6 +1,6 @@
 // this script is not part of the web UI,
 // it can be used to quickly test everything with node
-import { deploy } from './sudoku-snapp.js';
+import { deploy } from './sudoku.js';
 import { cloneSudoku, generateSudoku, solveSudoku } from './sudoku-lib.js';
 import { shutdown } from 'snarkyjs';
 import { tic, toc } from './tictoc.js';
